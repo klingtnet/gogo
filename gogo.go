@@ -42,12 +42,12 @@ func findWorkspace(start, godir string) (string, error) {
 func main() {
 	path, err := exec.LookPath("go")
 	if err != nil {
-		fmt.Printf("go is not installed: %s\n", err)
+		fmt.Fprintf(os.Stderr, "go is not installed: %s\n", err)
 		os.Exit(1)
 	}
 
 	if len(os.Args) < 2 {
-		fmt.Printf("Usage: %s [build|run|test...] ...\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s [build|run|test...] ...\n", os.Args[0])
 		os.Exit(2)
 	}
 
