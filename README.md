@@ -2,6 +2,8 @@
 
 `gogo` is a wrapper around the _go tool_ which manages a local workspace for your project.
 
+Note: The current concept does not work because of different symlink resolution in go and bash/zsh, details are in commit message `4a6a15f469c4021be1e3800dc806bc045885ac4f`.
+
 ## Usage
 
 Change into the root directory of your go project and boostrap the local workspace: `gogo bootstrap <import-path>` where `<import-path>` is something like 'github.com/klingtnet/gogo'.
