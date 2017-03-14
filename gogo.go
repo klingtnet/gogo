@@ -47,17 +47,18 @@ func exitIfError(err error, code int, format string, args ...interface{}) {
 }
 
 func printUsage() {
-	fmt.Println(`Usage: gogo [<go-command>|boostrap|help|usage] [argument]...
+	fmt.Println(`Usage: gogo [<go-command>|boostrap] [argument]...
 
 Example:
 	- calling a go command: 'gogo build app.go'
-	- bootstrapping the local GOPATH: 'gogo boostrap'
+	- bootstrapping the local GOPATH: 'gogo boostrap <import-path>'
+		The import path is usually something like 'github.com/user/project'.
 		Note that the bootstrap command should be run from the projects root directory!
-	- print this message: 'gogo', 'gogo help' or 'gogo usage'
+	- print this message: 'gogo'
 `)
 }
 
-func boostrap() {
+func boostrap(importPath string) {
 }
 
 func goCommand(goCmd string, args ...string) {
@@ -92,10 +93,13 @@ func main() {
 	}
 
 	switch os.Args[1] {
-	case "boostrap":
-		boostrap()
-	case "help", "usage":
-		printUsage()
+	case "bootstrap":
+		if len(os.Args) < 3 {
+			fmt.Fprintf(os.Stderr, "import path is missing\n")
+			printUsage()
+			os.Exit(ErrMissingArguments)
+		}
+		boostrap(os.Args[2])
 	default:
 		goCommand(goCmd, os.Args[1:]...)
 	}
