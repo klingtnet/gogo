@@ -58,13 +58,43 @@ Example:
 `)
 }
 
-func boostrap(importPath string) {
+func boostrap(wd, workspace string, args ...string) {
+	if len(args) < 2 {
+		fmt.Fprintf(os.Stderr, "import path is missing\n")
+		printUsage()
+		os.Exit(ErrMissingArguments)
+	}
+
+	loc, _ := findWorkspace(wd, workspace)
+	if loc != "" {
+		fmt.Printf("project is already boostrapped in %q\n", loc)
+		return
+	}
+
+	srcPath := path.Join(wd, workspace, "src")
+	err := os.MkdirAll(srcPath, 0755)
+	exitIfError(err, ErrWorkspaceProblem, "could not create workspace directory\n")
+
+	// e.g. let importPath="github.com/klingtnet/gogo" then namespace="github.com/klingtnet" and project="gogo"
+	// or let importPath="gogo" then namespace="" and project="gogo"
+	importPath := args[1]
+	parts := strings.Split(importPath, string(os.PathSeparator))
+	l := len(parts)
+	project := parts[l-1]
+	namespace := ""
+	if l > 1 {
+		namespace = path.Join(parts[:l-1]...)
+		err := os.MkdirAll(path.Join(srcPath, namespace), 0755)
+		exitIfError(err, ErrWorkspaceProblem, "could not create project directory in workspace\n")
+	}
+
+	fullPath := path.Clean(path.Join(srcPath, namespace, project))
+	err = os.Symlink(wd, fullPath)
+	exitIfError(err, ErrWorkspaceProblem, "could not create symbolic link from %q to %q\n", wd, fullPath)
 }
 
-func goCommand(goCmd string, args ...string) {
-	wd, err := os.Getwd()
-	exitIfError(err, ErrWorkspaceProblem, "could not get working directory")
-	loc, err := findWorkspace(wd, ".go")
+func goCommand(wd, goCmd, workspace string, args ...string) {
+	loc, err := findWorkspace(wd, workspace)
 	exitIfError(err, ErrWorkspaceProblem, "did you forget to boostrap the local gopath?\n")
 	fmt.Println(loc)
 
@@ -92,15 +122,14 @@ func main() {
 		os.Exit(ErrMissingArguments)
 	}
 
+	wd, err := os.Getwd()
+	exitIfError(err, ErrWorkspaceProblem, "could not get working directory")
+
+	workspace := ".gogo"
 	switch os.Args[1] {
 	case "bootstrap":
-		if len(os.Args) < 3 {
-			fmt.Fprintf(os.Stderr, "import path is missing\n")
-			printUsage()
-			os.Exit(ErrMissingArguments)
-		}
-		boostrap(os.Args[2])
+		boostrap(wd, workspace, os.Args[1:]...)
 	default:
-		goCommand(goCmd, os.Args[1:]...)
+		goCommand(wd, goCmd, workspace, os.Args[1:]...)
 	}
 }
