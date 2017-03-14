@@ -47,28 +47,27 @@ func exitIfError(err error, code int, format string, args ...interface{}) {
 }
 
 func printUsage() {
-	name := os.Args[0]
-	fmt.Printf(`Usage: %s <go-command> [argument]...
+	fmt.Println(`Usage: gogo [<go-command>|boostrap|help|usage] [argument]...
 
-	Example: %s build app.go
-`, name, name)
+Example:
+	- calling a go command: 'gogo build app.go'
+	- bootstrapping the local GOPATH: 'gogo boostrap'
+		Note that the bootstrap command should be run from the projects root directory!
+	- print this message: 'gogo', 'gogo help' or 'gogo usage'
+`)
 }
 
-func main() {
-	path, err := exec.LookPath("go")
-	exitIfError(err, ErrToolchainMissing, "go is not installed")
+func boostrap() {
+}
 
-	if len(os.Args) < 2 {
-		printUsage()
-		os.Exit(ErrMissingArguments)
-	}
-
+func goCommand(goCmd string, args ...string) {
 	wd, err := os.Getwd()
 	exitIfError(err, ErrWorkspaceProblem, "could not get working directory")
-	_, err = findWorkspace(wd, ".go")
-	exitIfError(err, ErrWorkspaceProblem, "")
+	loc, err := findWorkspace(wd, ".go")
+	exitIfError(err, ErrWorkspaceProblem, "did you forget to boostrap the local gopath?\n")
+	fmt.Println(loc)
 
-	cmd := exec.Command(path, os.Args[1:]...)
+	cmd := exec.Command(goCmd, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
@@ -80,5 +79,24 @@ func main() {
 			}
 		}
 		os.Exit(exitCode)
+	}
+}
+
+func main() {
+	goCmd, err := exec.LookPath("go")
+	exitIfError(err, ErrToolchainMissing, "go is not installed")
+
+	if len(os.Args) < 2 {
+		printUsage()
+		os.Exit(ErrMissingArguments)
+	}
+
+	switch os.Args[1] {
+	case "boostrap":
+		boostrap()
+	case "help", "usage":
+		printUsage()
+	default:
+		goCommand(goCmd, os.Args[1:]...)
 	}
 }
