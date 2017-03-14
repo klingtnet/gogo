@@ -57,12 +57,20 @@ func exitIfError(err error, code int, format string, args ...interface{}) {
 	os.Exit(ErrToolchainMissing)
 }
 
+func printUsage() {
+	name := os.Args[0]
+	fmt.Printf(`Usage: %s <go-command> [argument]...
+
+	Example: %s build app.go
+`, name, name)
+}
+
 func main() {
 	path, err := exec.LookPath("go")
 	exitIfError(err, ErrToolchainMissing, "go is not installed")
 
 	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "Usage: %s [build|run|test...] ...\n", os.Args[0])
+		printUsage()
 		os.Exit(ErrMissingArguments)
 	}
 
