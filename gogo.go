@@ -46,12 +46,20 @@ const (
 	ErrGoFailed
 )
 
+func exitIfError(err error, code int, format string, args ...interface{}) {
+	if err == nil {
+		return
+	}
+	if format != "" {
+		fmt.Fprintf(os.Stderr, format, args...)
+	}
+	fmt.Fprintf(os.Stderr, "%s\n", err)
+	os.Exit(ErrToolchainMissing)
+}
+
 func main() {
 	path, err := exec.LookPath("go")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "go is not installed: %s\n", err)
-		os.Exit(ErrToolchainMissing)
-	}
+	exitIfError(err, ErrToolchainMissing, "go is not installed")
 
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "Usage: %s [build|run|test...] ...\n", os.Args[0])
@@ -59,15 +67,9 @@ func main() {
 	}
 
 	wd, err := os.Getwd()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "could not get current directory: %s\n", err)
-		os.Exit(ErrWorkspaceProblem)
-	}
+	exitIfError(err, ErrWorkspaceProblem, "could not get working directory")
 	_, err = findWorkspace(wd, ".go")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(ErrWorkspaceProblem)
-	}
+	exitIfError(err, ErrWorkspaceProblem, "")
 
 	cmd := exec.Command(path, os.Args[1:]...)
 	cmd.Stdout = os.Stdout
