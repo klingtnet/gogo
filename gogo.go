@@ -9,29 +9,18 @@ import (
 	"syscall"
 )
 
-func isDir(dir string) (bool, error) {
-	info, err := os.Stat(dir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, err
-	}
-	if info.IsDir() {
-		return true, nil
-	}
-	return false, nil
-}
-
 func findWorkspace(start, godir string) (string, error) {
 	parts := strings.Split(start, string(os.PathSeparator))
 	for l := len(parts); l > 0; l-- {
 		dir := path.Join(string(os.PathSeparator), path.Join(parts[:l]...), godir)
-		found, err := isDir(dir)
+		info, err := os.Stat(dir)
+		if os.IsNotExist(err) {
+			continue
+		}
 		if err != nil {
 			return "", err
 		}
-		if found {
+		if info.IsDir() {
 			return dir, nil
 		}
 	}
