@@ -39,27 +39,34 @@ func findWorkspace(start, godir string) (string, error) {
 	return "", fmt.Errorf("workspace not found")
 }
 
+const (
+	ErrToolchainMissing = iota
+	ErrMissingArguments
+	ErrWorkspaceProblem
+	ErrGoFailed
+)
+
 func main() {
 	path, err := exec.LookPath("go")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "go is not installed: %s\n", err)
-		os.Exit(1)
+		os.Exit(ErrToolchainMissing)
 	}
 
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "Usage: %s [build|run|test...] ...\n", os.Args[0])
-		os.Exit(2)
+		os.Exit(ErrMissingArguments)
 	}
 
 	wd, err := os.Getwd()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "could not get current directory: %s\n", err)
-		os.Exit(3)
+		os.Exit(ErrWorkspaceProblem)
 	}
 	_, err = findWorkspace(wd, ".go")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(5)
+		os.Exit(ErrWorkspaceProblem)
 	}
 
 	cmd := exec.Command(path, os.Args[1:]...)
@@ -67,7 +74,7 @@ func main() {
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
-		exitCode := 3
+		exitCode := ErrGoFailed
 		if err, ok := err.(*exec.ExitError); ok {
 			if exitStatus, ok := err.Sys().(syscall.WaitStatus); ok {
 				exitCode = exitStatus.ExitStatus()
