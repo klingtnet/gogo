@@ -118,9 +118,19 @@ func boostrap(wd, workspace string, args ...string) {
 func goCommand(wd, goCmd, workspace string, args ...string) {
 	loc, err := findWorkspace(wd, workspace)
 	exitIfError(err, ErrWorkspaceProblem, "did you forget to boostrap the local gopath?\n")
-	fmt.Println(loc)
+
+	fpath := path.Join(loc, MetadataFilename)
+	jsonFile, err := os.Open(fpath)
+	exitIfError(err, ErrWorkspaceProblem, "metadata file not found: %q\n", fpath)
+	defer jsonFile.Close()
+	decoder := json.NewDecoder(jsonFile)
+	meta := metaData{}
+	err = decoder.Decode(&meta)
+	exitIfError(err, ErrWorkspaceProblem, "decoding %q failed\n", fpath)
 
 	cmd := exec.Command(goCmd, args...)
+	cmd.Env = []string{"GOPATH=" + loc}
+	cmd.Dir = path.Join(loc, "src", meta.Namespace, meta.Project)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
