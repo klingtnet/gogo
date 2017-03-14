@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -35,6 +36,8 @@ const (
 	ErrGoFailed
 )
 
+const MetadataFilename = "gogo.json"
+
 func exitIfError(err error, code int, format string, args ...interface{}) {
 	if err == nil {
 		return
@@ -56,6 +59,12 @@ Example:
 		Note that the bootstrap command should be run from the projects root directory!
 	- print this message: 'gogo'
 `)
+}
+
+type metaData struct {
+	Project    string `json:"projectName"`
+	Namespace  string `json:"namespace"`
+	ImportPath string `json:"importPath"`
 }
 
 func boostrap(wd, workspace string, args ...string) {
@@ -91,6 +100,19 @@ func boostrap(wd, workspace string, args ...string) {
 	fullPath := path.Clean(path.Join(srcPath, namespace, project))
 	err = os.Symlink(wd, fullPath)
 	exitIfError(err, ErrWorkspaceProblem, "could not create symbolic link from %q to %q\n", wd, fullPath)
+
+	fpath := path.Join(wd, workspace, MetadataFilename)
+	jsonFile, err := os.Create(fpath)
+	exitIfError(err, ErrWorkspaceProblem, "could not write metadata into: %q\n", fpath)
+	defer jsonFile.Close()
+
+	enc := json.NewEncoder(jsonFile)
+	err = enc.Encode(metaData{
+		Project:    project,
+		Namespace:  namespace,
+		ImportPath: importPath,
+	})
+	exitIfError(err, ErrWorkspaceProblem, "could not marshal metadata to JSON\n")
 }
 
 func goCommand(wd, goCmd, workspace string, args ...string) {
